@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BetModal from './BetModal';
 import type { PredictionData } from './BetModal';
@@ -35,12 +35,12 @@ vi.mock('../lib/xelma-contract', () => ({
     writeBytes: '256',
   }),
   estimatePrecisionPrediction: vi.fn().mockResolvedValue({
-    baseFee: '0.0000100',
-    resourceFee: '0.0000500',
-    totalFee: '0.0000600',
-    instructions: '100000',
-    readBytes: '512',
-    writeBytes: '256',
+    baseFee: '0.00001',
+    resourceFee: '0.00006',
+    totalFee: '0.00007',
+    instructions: '1200000',
+    readBytes: '600',
+    writeBytes: '300',
   }),
 }));
 
@@ -135,6 +135,19 @@ describe('BetModal — transaction pending state (#163)', () => {
     expect(link).toHaveAttribute('href', expect.stringContaining('TXABC'));
   });
 
+  it('shows truncated tx hash on the success screen', async () => {
+    placeBetImpl = async () => ({ txHash: '0123456789abcdef' });
+    renderOpen();
+
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Tx: 012345…abcdef')).toBeInTheDocument();
+    });
+    const link = screen.getByRole('link', { name: /view on stellarexpert/i });
+    expect(link).toHaveAttribute('href', expect.stringContaining('0123456789abcdef'));
+  });
+
   it('shows error state with Retry button when transaction fails', async () => {
     placeBetImpl = async () => { throw new Error('User rejected'); };
 
@@ -179,6 +192,25 @@ describe('BetModal — transaction pending state (#163)', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/prediction submitted/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Prediction Help Tooltip', () => {
+    it('renders the help button in BetModal and opens on click displaying explanations', () => {
+      renderOpen();
+
+      const helpBtn = screen.getByRole('button', { name: 'Help: Legend and Precision rules' });
+      expect(helpBtn).toBeInTheDocument();
+      expect(helpBtn).toHaveAttribute('aria-expanded', 'false');
+
+      fireEvent.click(helpBtn);
+
+      expect(helpBtn).toHaveAttribute('aria-expanded', 'true');
+      const tooltip = screen.getByRole('tooltip');
+      expect(tooltip).toBeInTheDocument();
+      expect(within(tooltip).getByText('UP/DOWN')).toBeInTheDocument();
+      expect(within(tooltip).getByText('Precision')).toBeInTheDocument();
+      expect(within(tooltip).getByText('Legend')).toBeInTheDocument();
     });
   });
 });

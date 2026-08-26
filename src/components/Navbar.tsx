@@ -5,6 +5,7 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef, useCallback, type ChangeEvent } from 'react';
+
 import { useTranslation } from 'react-i18next';
 import { Menu, X, Search } from 'lucide-react';
 import { useWalletStore, selectIsWalletConnected } from '../store/useWalletStore';
@@ -12,6 +13,10 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import Logo from '../assets/logo.svg';
 import { MODAL_OVERLAY, PANEL_SLIDE_RIGHT } from '../utils/motion';
 import { availableLanguages } from '../i18n';
+
+import MaskedBalance from './MaskedBalance';
+import { accountUrl, EXPLORER_NETWORK } from '../lib/explorer';
+
 
 interface NavLinkItem {
   labelKey: string;
@@ -186,12 +191,20 @@ export default function Navbar() {
               </div>
               {isConnected && publicKey ? (
                 <>
-                  <span className="rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                    {balance ? `${balance} vXLM` : '… vXLM'}
-                  </span>
-                  <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-gray-300">
+                  <MaskedBalance
+                    value={balance ? `${balance} vXLM` : '… vXLM'}
+                    className="rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200"
+                  />
+                  <a
+                    href={accountUrl(publicKey)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={publicKey}
+                    aria-label={`${truncateAddress(publicKey)} — view on StellarExpert (${EXPLORER_NETWORK})`}
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-gray-300 transition-colors hover:border-[#2C4BFD]/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2C4BFD]"
+                  >
                     {truncateAddress(publicKey)}
-                  </span>
+                  </a>
                 </>
               ) : null}
  
@@ -294,9 +307,16 @@ export default function Navbar() {
                   </div>
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm text-gray-400">{t('navbar.address')}</span>
-                    <span className="font-mono text-sm text-gray-300">
+                    <a
+                      href={accountUrl(publicKey)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={publicKey}
+                      aria-label={`${truncateAddress(publicKey)} — view on StellarExpert (${EXPLORER_NETWORK})`}
+                      className="rounded font-mono text-sm text-gray-300 underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2C4BFD]"
+                    >
                       {truncateAddress(publicKey)}
-                    </span>
+                    </a>
                   </div>
                 </div>
               ) : null}

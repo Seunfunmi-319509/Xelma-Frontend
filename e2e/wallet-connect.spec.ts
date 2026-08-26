@@ -6,9 +6,9 @@ function mockFreighter(page: import('@playwright/test').Page) {
     (window as unknown as Record<string, unknown>).freighter = {
       isConnected: () => Promise.resolve({ isConnected: true }),
       requestAccess: () =>
-        Promise.resolve({ address: 'GBHExampleAddressForTestingPurposesOnly1234567890ABCDE', error: null }),
+        Promise.resolve({ address: MOCK_ADDRESS, error: null }),
       getAddress: () =>
-        Promise.resolve({ address: 'GBHExampleAddressForTestingPurposesOnly1234567890ABCDE', error: null }),
+        Promise.resolve({ address: MOCK_ADDRESS, error: null }),
       getNetwork: () => Promise.resolve({ network: 'TESTNET', error: null }),
       signMessage: (message: string) =>
         Promise.resolve({ signedMessage: `mocked_signature_${message}`, error: null }),

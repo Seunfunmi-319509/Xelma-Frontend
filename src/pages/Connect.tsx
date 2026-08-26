@@ -5,6 +5,8 @@ import { Loader2, CheckCircle2, XCircle, Wallet, AlertCircle, ChevronDown, Chevr
 import clsx from 'clsx';
 import { toast } from 'sonner';
 import WalletConnect from '../components/WalletConnect';
+import BalancesPanel from '../components/BalancesPanel';
+import FriendbotFundCard from '../components/FriendbotFundCard';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -125,13 +127,17 @@ const Connect = () => {
           <div className="mb-6">
             <WalletConnect />
             {isConnected && (
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="btn-primary mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold"
-              >
-                Continue to Dashboard
-              </button>
+              <>
+                <FriendbotFundCard className="mt-4" />
+                <BalancesPanel className="mt-4" />
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="btn-primary mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold"
+                >
+                  Continue to Dashboard
+                </button>
+              </>
             )}
           </div>
 

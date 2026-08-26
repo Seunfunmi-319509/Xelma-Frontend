@@ -22,6 +22,7 @@ vi.mock('lucide-react', () => ({
   Search: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="icon-search" {...props} />,
   Menu: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="icon-menu" {...props} />,
   X: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="icon-x" {...props} />,
+  Search: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="icon-search" {...props} />,
 }));
 
 const connectMock = vi.fn();

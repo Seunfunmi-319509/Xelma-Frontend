@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { createRef } from 'react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import RoundCard from '../RoundCard';
 import type { MockRound } from '../../types';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
 describe('RoundCard Component', () => {
   const defaultRound: MockRound = {
@@ -196,6 +198,49 @@ describe('RoundCard Component', () => {
       const { container } = render(<RoundCard round={wideRound} onSubmitPrediction={vi.fn()} />);
       const referencePrice = container.querySelector('p.truncate');
       expect(referencePrice).not.toBeNull();
+    });
+  });
+
+  describe('deep-link highlighting', () => {
+    afterEach(() => {
+      useSettingsStore.getState().setMotionPreference('system');
+    });
+
+    it('marks data-highlighted="false" and omits highlight styling by default', () => {
+      render(<RoundCard round={defaultRound} onSubmitPrediction={vi.fn()} />);
+      const card = screen.getByTestId('round-card');
+
+      expect(card).toHaveAttribute('data-highlighted', 'false');
+      expect(card.className).not.toMatch(/accent-border-teal/);
+      expect(card.className).not.toMatch(/accent-pulse/);
+    });
+
+    it('applies the highlight border and pulse animation when isHighlighted is true', () => {
+      render(<RoundCard round={defaultRound} onSubmitPrediction={vi.fn()} isHighlighted />);
+      const card = screen.getByTestId('round-card');
+
+      expect(card).toHaveAttribute('data-highlighted', 'true');
+      expect(card.className).toMatch(/accent-border-teal/);
+      expect(card.className).toMatch(/accent-pulse/);
+    });
+
+    it('omits the pulse animation (but keeps the border) when reduced motion is preferred', () => {
+      useSettingsStore.getState().setMotionPreference('reduce');
+
+      render(<RoundCard round={defaultRound} onSubmitPrediction={vi.fn()} isHighlighted />);
+      const card = screen.getByTestId('round-card');
+
+      expect(card.className).toMatch(/accent-border-teal/);
+      expect(card.className).not.toMatch(/accent-pulse/);
+    });
+
+    it('forwards a ref to the underlying <article> element', () => {
+      const ref = createRef<HTMLElement>();
+      render(<RoundCard round={defaultRound} onSubmitPrediction={vi.fn()} ref={ref} />);
+
+      expect(ref.current).not.toBeNull();
+      expect(ref.current?.tagName).toBe('ARTICLE');
+      expect(ref.current).toBe(screen.getByTestId('round-card'));
     });
   });
 });

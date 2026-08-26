@@ -164,6 +164,38 @@
   letter-spacing: 0.5px;
 }
 
+/* Keyboard shortcut hint */
+.prediction-card__shortcut-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  margin: -16px 0 24px;
+  letter-spacing: 0.3px;
+}
+
+.dark .prediction-card__shortcut-hint {
+  color: #6b7280;
+}
+
+.prediction-card__shortcut-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.dark .prediction-card__shortcut-hint kbd {
+  border-color: #4b5563;
+  background: #374151;
+  color: #e5e7eb;
+}
+
 /* Stake Section */
 .prediction-card__stake-section {
   margin-bottom: 24px;
