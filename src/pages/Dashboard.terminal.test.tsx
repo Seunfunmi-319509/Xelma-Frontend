@@ -41,6 +41,22 @@ vi.mock('../lib/api-client', () => ({
 vi.mock('../lib/xelma-contract', () => ({
   place_bet: vi.fn(),
   place_precision_prediction: vi.fn(),
+  estimatePlaceBet: vi.fn().mockResolvedValue({
+    baseFee: '0.0000100',
+    resourceFee: '0.0000500',
+    totalFee: '0.0000600',
+    instructions: '100000',
+    readBytes: '512',
+    writeBytes: '256',
+  }),
+  estimatePrecisionPrediction: vi.fn().mockResolvedValue({
+    baseFee: '0.0000100',
+    resourceFee: '0.0000500',
+    totalFee: '0.0000600',
+    instructions: '100000',
+    readBytes: '512',
+    writeBytes: '256',
+  }),
 }));
 
 describe('Dashboard Terminal & Round Flows', () => {

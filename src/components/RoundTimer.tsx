@@ -52,6 +52,8 @@ export default function RoundTimer({
 
   useEffect(() => {
     const diff = resolveTimestamp(endTime) - Date.now();
+    // Recalculate the visual scale when the target round changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInitialDurationMs(diff > 0 ? diff : 1);
   }, [endTime]);
 

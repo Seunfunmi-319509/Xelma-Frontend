@@ -207,15 +207,26 @@ async function simulateContractCall(
   await rpcServer.prepareTransaction(tx);
 
   const baseFeeStroops = Number(BASE_FEE) || 100;
-  const resourceFeeStroops = simulation.minResourceFee ? Number(simulation.minResourceFee) : 0;
+  const simulationResources = simulation as typeof simulation & {
+    minResourceFee?: string | number;
+    cost?: {
+      cpuInsns?: string | number;
+      readBytes?: string | number;
+      writeBytes?: string | number;
+    };
+  };
+  const resourceFeeStroops = simulationResources.minResourceFee
+    ? Number(simulationResources.minResourceFee)
+    : 0;
+  const cost = simulationResources.cost;
 
   return {
     baseFee: stroopsToXlm(baseFeeStroops),
     resourceFee: stroopsToXlm(resourceFeeStroops),
     totalFee: stroopsToXlm(baseFeeStroops + resourceFeeStroops),
-    instructions: simulation.cost?.cpuInsns ? String(simulation.cost.cpuInsns) : '0',
-    readBytes: simulation.cost?.readBytes ? String(simulation.cost.readBytes) : '0',
-    writeBytes: simulation.cost?.writeBytes ? String(simulation.cost.writeBytes) : '0',
+    instructions: cost?.cpuInsns ? String(cost.cpuInsns) : '0',
+    readBytes: cost?.readBytes ? String(cost.readBytes) : '0',
+    writeBytes: cost?.writeBytes ? String(cost.writeBytes) : '0',
   };
 }
 

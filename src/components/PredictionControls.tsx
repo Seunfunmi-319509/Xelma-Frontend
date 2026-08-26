@@ -47,7 +47,7 @@ function validateExactPrice(value: string): string | null {
   const num = parseFloat(value);
   if (Number.isNaN(num)) return "Must be a valid number";
   if (num < EXACT_PRICE_MIN || num > EXACT_PRICE_MAX) {
-    return `Must be between ${EXACT_PRICE_MIN} and ${EXACT_PRICE_MAX}`;
+    return `Must be between ${EXACT_PRICE_MIN} and ${EXACT_PRICE_MAX.toFixed(1)}`;
   }
   const parts = value.split(".");
   if (parts.length === 2 && parts[1].length > EXACT_PRICE_DECIMAL_PLACES) {

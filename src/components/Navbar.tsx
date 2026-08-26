@@ -4,7 +4,8 @@
 // ISSUE: Build User Profile page (/profile)
 
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Menu, X, Search } from 'lucide-react';
 import { useWalletStore, selectIsWalletConnected } from '../store/useWalletStore';
 import { useFocusTrap } from '../hooks/useFocusTrap';

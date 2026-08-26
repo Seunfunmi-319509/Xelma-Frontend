@@ -22,6 +22,38 @@ import EmptyState from '../components/EmptyState';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 import { mockUserStats } from "../data/mockData";
 import type { RecentActivityItem } from "../types";
+import OpenPositionsDrawer, { type OpenPosition } from "../components/OpenPositionsDrawer";
+
+const OPEN_PREDICTION_STATUSES = new Set(["open", "pending", "active", "placed", "unresolved"]);
+
+function isOpenPrediction(pred: UserPrediction, activeRoundId?: string | number): boolean {
+  const status = String(pred.status ?? "").toLowerCase();
+  if (status) return OPEN_PREDICTION_STATUSES.has(status);
+
+  return (
+    activeRoundId !== undefined &&
+    activeRoundId !== null &&
+    pred.roundId !== undefined &&
+    pred.roundId !== null &&
+    String(pred.roundId) === String(activeRoundId)
+  );
+}
+
+function mapPredictionToOpenPosition(pred: UserPrediction): OpenPosition {
+  return {
+    id: pred.id,
+    asset: typeof pred.asset === "string" ? pred.asset : undefined,
+    direction: typeof pred.direction === "string" ? pred.direction : undefined,
+    stake: pred.stake,
+    exactPrice: pred.exactPrice,
+    roundId: pred.roundId,
+    potentialPayout:
+      typeof pred.potentialPayout === "string" || typeof pred.potentialPayout === "number"
+        ? pred.potentialPayout
+        : undefined,
+    createdAt: pred.createdAt,
+  };
+}
 
 function mapPredictionToActivityItem(pred: UserPrediction): RecentActivityItem {
   const isWin = typeof pred.isWin === "boolean"
@@ -131,6 +163,8 @@ const DailyTip = () => {
 
 
 const Dashboard = () => {
+  const activeRound = useRoundStore((state) => state.activeRound);
+  const activeRoundId = activeRound?.id;
   const isRoundActive = useRoundStore((state) => state.isRoundActive);
   const isLoading = useRoundStore((state) => state.isLoading);
   const sseConnection = useRoundStore((state) => state.sseConnection);
@@ -154,8 +188,10 @@ const Dashboard = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
 
   const [activities, setActivities] = useState<RecentActivityItem[]>([]);
+  const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
   const [isActivitiesLoading, setIsActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [isOpenPositionsOpen, setIsOpenPositionsOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     if (!isWalletConnected) {
@@ -178,6 +214,7 @@ const Dashboard = () => {
   const fetchActivities = useCallback(async () => {
     if (!isWalletConnected || !publicKey) {
       setActivities([]);
+      setOpenPositions([]);
       return;
     }
     setIsActivitiesLoading(true);
@@ -185,13 +222,19 @@ const Dashboard = () => {
     try {
       const data = await predictionsApi.getUserHistory(publicKey);
       setActivities(data.map(mapPredictionToActivityItem));
+      setOpenPositions(
+        data
+          .filter((prediction) => isOpenPrediction(prediction, activeRoundId))
+          .map(mapPredictionToOpenPosition),
+      );
     } catch (err) {
       console.error("Failed to fetch predictions:", err);
+      setOpenPositions([]);
       setActivitiesError(err instanceof Error ? err.message : "Failed to load predictions");
     } finally {
       setIsActivitiesLoading(false);
     }
-  }, [isWalletConnected, publicKey]);
+  }, [activeRoundId, isWalletConnected, publicKey]);
 
   useEffect(() => {
     void fetchStats();
@@ -281,7 +324,23 @@ const Dashboard = () => {
         {isLoading && <DashboardSkeleton />}
 
         {!isLoading && (
-          <div className="mb-4 flex items-center justify-end">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+            {isRoundActive && (
+              <button
+                type="button"
+                onClick={() => setIsOpenPositionsOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={isOpenPositionsOpen}
+                aria-label={`Open positions, ${openPositions.length} open positions`}
+                className="btn-ghost inline-flex min-h-[40px] items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold"
+                data-testid="open-positions-trigger"
+              >
+                Open positions
+                <span className="rounded-full bg-cyan-300/15 px-2 py-0.5 text-xs text-cyan-200" aria-hidden="true">
+                  {openPositions.length}
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setIsChatOpen((open) => !open)}
@@ -391,6 +450,12 @@ const Dashboard = () => {
         )}
       </div>
 
+      <OpenPositionsDrawer
+        isOpen={isOpenPositionsOpen}
+        onClose={() => setIsOpenPositionsOpen(false)}
+        positions={openPositions}
+        activeRound={activeRound}
+      />
       <BetModal
         isOpen={isBetModalOpen}
         onClose={() => {

@@ -267,6 +267,18 @@ describe('Dashboard', () => {
       expect(predictionHistory).toHaveAttribute('data-user-id', 'GTEST123');
     });
 
+    it('opens the open positions drawer from the dashboard entry point', () => {
+      render(<Dashboard />);
+
+      fireEvent.click(screen.getByTestId('open-positions-trigger'));
+
+      expect(screen.getByRole('dialog', { name: /open positions/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'No open positions' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close open positions' }));
+      expect(screen.queryByRole('dialog', { name: /open positions/i })).not.toBeInTheDocument();
+    });
+
 
   });
 
