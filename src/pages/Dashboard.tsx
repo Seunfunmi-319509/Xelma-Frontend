@@ -237,7 +237,6 @@ const Dashboard = () => {
   const [inspector, setInspector] = useState<SorobanInspectorSnapshot | null>(null);
   const [isInspectorLoading, setIsInspectorLoading] = useState(false);
   const soundEnabled = useSettingsStore(selectSoundEnabled);
-  const setSoundEnabled = useSettingsStore((state) => state.setSoundEnabled);
 
   // Asset tab state from URL query param
   const [searchParams] = useSearchParams();
@@ -482,15 +481,6 @@ const Dashboard = () => {
                 </span>
               </button>
             )}
-            <label className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300">
-              <input
-                type="checkbox"
-                checked={soundEnabled}
-                onChange={(event) => setSoundEnabled(event.target.checked)}
-                className="accent-cyan-400"
-              />
-              Round sound
-            </label>
             <button
               type="button"
               onClick={() => setIsChatOpen((open) => !open)}
