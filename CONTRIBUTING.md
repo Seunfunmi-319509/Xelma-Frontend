@@ -105,6 +105,7 @@ you may need these additional environment variables. Add them to your local `.en
 - [ ] Keep the PR focused on one concern.
 - [ ] Run `pnpm lint` and fix reported issues.
 - [ ] Run `pnpm test:unit` for unit coverage.
+- [ ] Run `pnpm test:e2e` to ensure Playwright smoke tests pass.
 - [ ] Run `pnpm build` for the TypeScript/Vite production build.
 - [ ] Include screenshots or a short screen recording for visible UI changes.
 - [ ] Mention any env vars, migrations, or manual QA steps reviewers need.

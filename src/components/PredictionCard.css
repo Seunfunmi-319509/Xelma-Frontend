@@ -153,6 +153,11 @@
   opacity: 0.5;
 }
 
+.prediction-card__button:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
 .prediction-card__button-arrow {
   font-size: 32px;
   line-height: 1;
@@ -300,6 +305,11 @@
   background: #1e3fd4;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(44, 75, 253, 0.3);
+}
+
+.prediction-card__fill-button:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
 }
 
 .prediction-card__fill-button:active:not(:disabled) {

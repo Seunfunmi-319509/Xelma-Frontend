@@ -23,6 +23,12 @@ import { useRoundStore } from "../store/useRoundStore";
 import type { Round, UserPrediction, UserStats } from "../lib/api-client";
 import { educationApi, statsApi, predictionsApi } from "../lib/api-client";
 import { useWalletStore, selectIsWalletConnected } from "../store/useWalletStore";
+import { useSettingsStore, selectSoundEnabled } from "../store/useSettingsStore";
+import {
+  bindSoundPreference,
+  clearSoundPreferenceBinding,
+  playRoundResolutionCue,
+} from "../utils/audioController";
 import { TipCard } from "../components/education/TipCard";
 import type { Tip } from "../types/education";
 import EmptyState from '../components/EmptyState';
@@ -230,7 +236,7 @@ const Dashboard = () => {
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [inspector, setInspector] = useState<SorobanInspectorSnapshot | null>(null);
   const [isInspectorLoading, setIsInspectorLoading] = useState(false);
-  const [roundSoundEnabled, setRoundSoundEnabled] = useState(() => localStorage.getItem("xelma_round_sound") === "1");
+  const soundEnabled = useSettingsStore(selectSoundEnabled);
 
   // Asset tab state from URL query param
   const [searchParams] = useSearchParams();
@@ -360,11 +366,13 @@ const Dashboard = () => {
     void refreshInspector();
   }, [refreshInspector]);
 
-  const handleRoundSoundToggle = (enabled: boolean) => {
-    setRoundSoundEnabled(enabled);
-    localStorage.setItem('xelma_round_sound', enabled ? '1' : '0');
-  };
-
+  // Bind the audio controller to the settings store so round-resolution cues
+  // respect the same preference as the Settings "Test sound" tone, even
+  // though this page never mounts Settings.tsx.
+  useEffect(() => {
+    bindSoundPreference(() => useSettingsStore.getState().soundEnabled);
+    return () => clearSoundPreferenceBinding();
+  }, []);
 
   useEffect(() => {
     const { fetchActiveRound, subscribeToRoundEvents } = useRoundStore.getState();
@@ -438,6 +446,13 @@ const Dashboard = () => {
   };
 
   const endRoundResult = getEndRoundResult(resolvedRound);
+
+  // Play the round-resolution cue exactly once per resolved round.
+  useEffect(() => {
+    if (!resolvedRound) return;
+    if (!soundEnabled) return;
+    playRoundResolutionCue(endRoundResult.isWin);
+  }, [resolvedRound, endRoundResult.isWin, soundEnabled]);
 
   return (
     <div className="xelma-grid-bg min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -720,7 +735,7 @@ const Dashboard = () => {
               });
               setIsBetModalOpen(true);
             }}
-            className="w-full py-3.5 bg-[#2C4BFD] hover:bg-[#2C4BFD]/90 rounded-xl font-bold text-sm transition active:scale-[0.98] min-h-[44px]"
+            className="w-full py-3.5 bg-[#2C4BFD] hover:bg-[#2C4BFD]/90 rounded-xl font-bold text-sm transition active:scale-[0.98] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1A]"
           >
             Make Prediction
           </button>

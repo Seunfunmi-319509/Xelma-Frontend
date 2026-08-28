@@ -50,6 +50,8 @@ vi.mock('react-router-dom', () => ({
 import { useRoundStore } from '../store/useRoundStore';
 import { useWalletStore } from '../store/useWalletStore';
 import { predictionsApi, ApiError, educationApi, statsApi } from '../lib/api-client';
+import { useSettingsStore, DEFAULT_SETTINGS } from '../store/useSettingsStore';
+import { bindSoundPreference, playRoundResolutionCue } from '../utils/audioController';
 import Dashboard from './Dashboard';
 
 
@@ -230,6 +232,12 @@ vi.mock('../components/CountdownTimer', () => ({
   ),
 }));
 
+vi.mock('../utils/audioController', () => ({
+  bindSoundPreference: vi.fn(),
+  clearSoundPreferenceBinding: vi.fn(),
+  playRoundResolutionCue: vi.fn(),
+}));
+
 
 describe('Dashboard', () => {
 
@@ -258,6 +266,9 @@ describe('Dashboard', () => {
       status: 'connected',
       publicKey: 'GTEST123',
     });
+
+    localStorage.clear();
+    useSettingsStore.setState({ ...DEFAULT_SETTINGS });
 
     // vi.resetAllMocks() above clears the global window.matchMedia
     // implementation from src/test/setup.ts — re-establish it so
@@ -447,6 +458,60 @@ describe('Dashboard', () => {
       fireEvent.click(modal);
 
       expect(dismissResolvedRound).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('sound (unified with useSettingsStore)', () => {
+    const resolvedRound = {
+      id: 'round-123',
+      status: 'resolved',
+      isWin: true,
+      netChange: 42,
+      tip: 'Nice finish!',
+    };
+
+    function mockResolvedRound() {
+      vi.mocked(useRoundStore).mockImplementation((selector: any) => {
+        const store = { ...mockRoundStore, isRoundActive: false, resolvedRound };
+        return typeof selector === 'function' ? selector(store) : store;
+      });
+    }
+
+    it('binds the audio controller to the settings store on mount', () => {
+      render(<Dashboard />);
+      expect(bindSoundPreference).toHaveBeenCalledWith(expect.any(Function));
+    });
+
+    it('plays the round-resolution cue when settings sound is enabled', () => {
+      useSettingsStore.setState({ soundEnabled: true });
+      mockResolvedRound();
+
+      render(<Dashboard />);
+
+      expect(playRoundResolutionCue).toHaveBeenCalledWith(true);
+    });
+
+    it('does not play the round-resolution cue when settings sound is disabled', () => {
+      useSettingsStore.setState({ soundEnabled: false });
+      mockResolvedRound();
+
+      render(<Dashboard />);
+
+      expect(playRoundResolutionCue).not.toHaveBeenCalled();
+    });
+
+    it('never writes the legacy xelma_round_sound localStorage key', () => {
+      useSettingsStore.setState({ soundEnabled: true });
+      mockResolvedRound();
+
+      render(<Dashboard />);
+
+      expect(localStorage.getItem('xelma_round_sound')).toBeNull();
+    });
+
+    it('does not render an ad-hoc round sound toggle', () => {
+      render(<Dashboard />);
+      expect(screen.queryByText('Round sound')).not.toBeInTheDocument();
     });
   });
 
