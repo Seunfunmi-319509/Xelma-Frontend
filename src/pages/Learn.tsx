@@ -55,6 +55,10 @@ const LearnPage = () => {
         // Load education content when the page mounts.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchData();
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [fetchData]);
 
     if (loading) {

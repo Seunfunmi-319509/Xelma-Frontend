@@ -161,6 +161,31 @@ describe('BetModal — transaction pending state (#163)', () => {
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 
+  it('renders an aria-live region announcing transaction failure', async () => {
+    placeBetImpl = async () => { throw new Error('User rejected'); };
+
+    const { container } = renderOpen();
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      const liveRegion = container.querySelector('[aria-live="assertive"]');
+      expect(liveRegion).toBeInTheDocument();
+      expect(liveRegion).toHaveTextContent(/transaction failed/i);
+      expect(liveRegion).toHaveTextContent(/user rejected/i);
+    });
+  });
+
+  it('renders an aria-live region announcing successful submission', async () => {
+    const { container } = renderOpen();
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      const liveRegion = container.querySelector('[aria-live="polite"]');
+      expect(liveRegion).toBeInTheDocument();
+      expect(liveRegion).toHaveTextContent(/prediction submitted successfully/i);
+    });
+  });
+
   it('shows wallet_required view when wallet is not connected', () => {
     mockIsConnected = false;
     mockIsAuthenticated = false;

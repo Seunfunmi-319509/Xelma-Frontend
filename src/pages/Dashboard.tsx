@@ -223,6 +223,10 @@ const Dashboard = () => {
     // Clear the chart marker when the active round changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEntryPrice(null);
+    const timer = setTimeout(() => {
+      setEntryPrice(null);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [activeRoundId]);
 
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -337,6 +341,11 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchStats();
     void fetchActivities();
+    const timer = setTimeout(() => {
+      void fetchStats();
+      void fetchActivities();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchStats, fetchActivities]);
 
   const refreshInspector = useCallback(async () => {
@@ -364,6 +373,10 @@ const Dashboard = () => {
     // Refresh the inspector when wallet identity changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshInspector();
+    const timer = setTimeout(() => {
+      void refreshInspector();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [refreshInspector]);
 
   // Bind the audio controller to the settings store so round-resolution cues

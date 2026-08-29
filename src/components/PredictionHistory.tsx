@@ -85,6 +85,10 @@ export default function PredictionHistory({ userId, optimisticPrediction }: Pred
     // Loading history synchronizes component state with the user id.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHistory();
+    const timer = setTimeout(() => {
+      void loadHistory();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadHistory]);
 
   if (!userId) {
