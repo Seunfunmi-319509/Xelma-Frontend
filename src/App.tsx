@@ -15,6 +15,7 @@ import ComingSoonPage from './pages/ComingSoonPage';
 import OnboardingChecklist from './components/OnboardingChecklist';
 import { Trophy } from 'lucide-react';
 
+const NotFound = lazy(() => import('./pages/NotFound'));
 const Dashboard = lazy(() => import(/* webpackChunkName: "dashboard" */ './pages/Dashboard'));
 const Leaderboard = lazy(() => import(/* webpackChunkName: "leaderboard" */ './components/Leaderboard'));
 const LearnPage = lazy(() => import(/* webpackChunkName: "learn" */ './pages/Learn'));
@@ -66,9 +67,6 @@ function App() {
                 />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Suspense fallback={<PageSkeleton type="settings" />}><Settings /></Suspense>} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-
-            </Routes>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </RouteTransition>
