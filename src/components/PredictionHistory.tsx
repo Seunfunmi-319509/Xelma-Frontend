@@ -4,6 +4,8 @@ import { LoadingState, ErrorState, EmptyState } from "./ui/StatusStates";
 import { PanelHeader } from "./ui/PanelHeader";
 import { formatVXLM, formatRelativeTime } from "../lib/utils";
 
+const PAGE_SIZE = 10;
+
 interface PredictionHistoryProps {
   userId: string | null;
   optimisticPrediction?: UserPrediction | null;
