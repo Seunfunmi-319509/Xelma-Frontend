@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigation } from 'react-router-dom';
 
 const START_PCT = 15;
 const TRICKLE_MS = 150;
-const COMPLETE_DELAY_MS = 350;
 const FADE_MS = 200;
 
 export default function RouteProgressBar() {
@@ -11,7 +10,7 @@ export default function RouteProgressBar() {
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(false);
 
-  const prefersReducedMotion = useRef(
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 
@@ -20,7 +19,7 @@ export default function RouteProgressBar() {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const onChange = () => {
-      prefersReducedMotion.current = mq.matches;
+      setPrefersReducedMotion(mq.matches);
 
       // Immediately hide an active progress bar if the preference changes.
       if (mq.matches) {
@@ -35,7 +34,7 @@ export default function RouteProgressBar() {
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion.current) {
+    if (prefersReducedMotion) {
       return;
     }
 
@@ -73,7 +72,7 @@ export default function RouteProgressBar() {
     };
   }, [navigation.state, visible]);
 
-  if (prefersReducedMotion.current || !visible) {
+  if (prefersReducedMotion || !visible) {
     return null;
   }
 

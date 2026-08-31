@@ -225,7 +225,6 @@ const Dashboard = () => {
   // Clear the entry marker whenever the active round changes.
   useEffect(() => {
     // Clear the chart marker when the active round changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEntryPrice(null);
     const timer = setTimeout(() => {
       setEntryPrice(null);
@@ -342,7 +341,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Load user-specific dashboard data when wallet identity changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchStats();
     void fetchActivities();
     const timer = setTimeout(() => {
@@ -375,7 +373,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Refresh the inspector when wallet identity changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshInspector();
     const timer = setTimeout(() => {
       void refreshInspector();

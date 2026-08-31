@@ -53,7 +53,6 @@ const LearnPage = () => {
 
     useEffect(() => {
         // Load education content when the page mounts.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchData();
         const timer = setTimeout(() => {
             fetchData();

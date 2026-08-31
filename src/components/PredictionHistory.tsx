@@ -159,7 +159,6 @@ export default function PredictionHistory({ userId, optimisticPrediction, refres
   }, [history, userId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHistory();
     // refreshSignal is intentionally included so a change re-triggers the
     // fetch even though loadHistory's own identity doesn't depend on it.
