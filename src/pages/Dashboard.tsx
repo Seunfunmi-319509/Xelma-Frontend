@@ -217,7 +217,8 @@ const Dashboard = () => {
   const publicKey = useWalletStore((s) => s.publicKey);
   const balance = useWalletStore((s) => s.balance);
   const { isConnected: isSocketConnected } = useConnectionStatus();
-  const activeRoundId = useRoundStore((state) => state.activeRound?.id ?? null);
+  const activeRound = useRoundStore((state) => state.activeRound);
+  const activeRoundId = activeRound?.id ?? null;
   const [isBetModalOpen, setIsBetModalOpen] = useState(false);
   const [pendingPrediction, setPendingPrediction] = useState<PredictionData | null>(null);
   const [optimisticPrediction, setOptimisticPrediction] = useState<UserPrediction | null>(null);

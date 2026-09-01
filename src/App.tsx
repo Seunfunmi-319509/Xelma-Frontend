@@ -5,9 +5,10 @@ import Navbar from './components/Navbar';
 import CommandPalette from './components/CommandPalette';
 import PageSkeleton from './components/PageSkeleton';
 import RouteProgressBar from './components/RouteProgressBar';
+import RouteTransition from './components/RouteTransition';
 import Landing from './pages/Landing';
+import NotFound from './pages/NotFound';
 import RouteFallback from './components/RouteFallback';
-import RouteProgressBar from './components/RouteProgressBar';
 import LazyBoundary from './components/LazyBoundary';
 import ErrorBoundary from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -57,8 +58,8 @@ function App() {
                 <Route path="/tournament" element={<Suspense fallback={<PageSkeleton type="tournament" />}><Tournament /></Suspense>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Suspense fallback={<PageSkeleton type="settings" />}><Settings /></Suspense>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                <Route path="*" element={<NotFound />} />                </Routes>
+            </RouteTransition>
           </Suspense>
         </LazyBoundary>
       </ErrorBoundary>
