@@ -558,7 +558,15 @@ const Dashboard = () => {
         {/* Round lifecycle timeline, ported from /play. */}
         {!isLoading && (
           <div className="mb-6">
-            <div className="mb-3 flex justify-end">
+            <div className="mb-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsOpenPositionsOpen(true)}
+                data-testid="open-positions-trigger"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:border-[#2C4BFD]/40 hover:text-white"
+              >
+                Open positions{openPositions.length > 0 ? ` (${openPositions.length})` : ''}
+              </button>
               <button
                 type="button"
                 onClick={() => setIsEventLogOpen(true)}
