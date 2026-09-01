@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStellarAddressValidation } from '../hooks/useStellarAddressValidation';
 import { type Network } from '../utils/validateStellarAddress';
-import { Loader2, CheckCircle2, XCircle, Wallet, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, XCircle, Wallet, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'sonner';
 import WalletConnect from '../components/WalletConnect';
@@ -9,6 +9,7 @@ import BalancesPanel from '../components/BalancesPanel';
 import FriendbotFundCard from '../components/FriendbotFundCard';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNavigate } from 'react-router-dom';
+import { Spinner } from '../components/ui/Spinner';
 
 const Connect = () => {
   const [address, setAddress] = useState('');
@@ -17,7 +18,7 @@ const Connect = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const { publicKey, status } = useWalletStore();
+  const { publicKey, status, setWatchOnly, isWatchOnly, disconnect } = useWalletStore();
   const isConnected = status === 'connected' && Boolean(publicKey);
 
   const {
@@ -59,24 +60,20 @@ const Connect = () => {
   };
 
   // Handle connect button click
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!isValid) {
       toast.error('Please enter a valid Stellar address');
       return;
     }
 
-    // Here you would typically connect to the address
-    // For now, we'll just show a success message
-    toast.success(`Connected to ${address.slice(0, 8)}...${address.slice(-8)} on ${selectedNetwork}`);
-    
-    // You can add your connection logic here
-    // For example, update a store or call an API
+    // Use watch-only mode for manual address connection
+    await setWatchOnly(address);
   };
 
   // Get the feedback icon based on validation state
   const getFeedbackIcon = () => {
     if (isValidating) {
-      return <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />;
+      return <Spinner label="Validating address" size="sm" />;
     }
     if (isValid) {
       return <CheckCircle2 className="w-5 h-5 text-green-400" />;
@@ -115,33 +112,66 @@ const Connect = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">
-                Connect Wallet
+                {isWatchOnly ? 'Watch-Only Mode' : 'Connect Wallet'}
               </h1>
               <p className="text-sm text-gray-400">
-                Connect your Freighter wallet to get started
+                {isWatchOnly
+                  ? 'Viewing an address without signing capability'
+                  : 'Connect your Freighter wallet to get started'}
               </p>
             </div>
           </div>
 
           {/* Primary path: Freighter wallet connection (shared flow) */}
           <div className="mb-6">
-            <WalletConnect />
-            {isConnected && (
+            {isWatchOnly ? (
               <>
-                <FriendbotFundCard className="mt-4" />
+                <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
+                  <div className="flex items-center gap-2 text-green-400">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="text-sm font-semibold">Watch-only address active</span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400 break-all font-mono">{publicKey}</p>
+                </div>
                 <BalancesPanel className="mt-4" />
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="btn-primary mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold"
-                >
-                  Continue to Dashboard
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => disconnect()}
+                    className="flex-1 rounded-xl border border-gray-700 px-4 py-3 text-sm font-bold text-gray-400 hover:bg-white/5 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="btn-primary flex-1 rounded-xl px-4 py-3 text-sm font-bold"
+                  >
+                    Continue to Dashboard
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <WalletConnect />
+                {isConnected && (
+                  <>
+                    <FriendbotFundCard className="mt-4" />
+                    <BalancesPanel className="mt-4" />
+                    <button
+                      type="button"
+                      onClick={() => navigate('/dashboard')}
+                      className="btn-primary mt-4 w-full rounded-xl px-4 py-3 text-sm font-bold"
+                    >
+                      Continue to Dashboard
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>
 
-          {/* Advanced path toggle: optional manual address validation */}
+          {/* Advanced path toggle: optional watch-only mode */}
           <div className="border-t border-[#BEC7FE]/10 pt-4">
             <button
               type="button"
@@ -149,7 +179,7 @@ const Connect = () => {
               className="flex w-full items-center justify-between text-sm font-medium text-gray-400 hover:text-white transition-colors"
               aria-expanded={showAdvanced}
             >
-              <span>Advanced: validate an address manually</span>
+              <span>Watch-only: view an address without signing</span>
               {showAdvanced ? (
                 <ChevronUp className="w-4 h-4" />
               ) : (
@@ -263,13 +293,13 @@ const Connect = () => {
           >
             {isValidating ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Spinner size="sm" />
                 <span>Validating...</span>
               </>
             ) : (
               <>
                 <Wallet className="w-5 h-5" />
-                <span>Validate Address</span>
+                <span>View in Watch-Only Mode</span>
               </>
             )}
           </button>

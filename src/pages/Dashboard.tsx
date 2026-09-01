@@ -10,6 +10,7 @@ import AssetTabs from "../components/AssetTabs";
 import { ASSETS } from "../constants/assets";
 import type { Asset } from "../types/asset";
 
+import { useTranslation } from 'react-i18next';
 import type { PredictionData } from "../components/PredictionControls";
 import BetModal from "../components/BetModal";
 import EndRoundModal from "../components/EndRoundModal";
@@ -23,6 +24,12 @@ import { useRoundStore } from "../store/useRoundStore";
 import type { Round, UserPrediction, UserStats } from "../lib/api-client";
 import { educationApi, statsApi, predictionsApi } from "../lib/api-client";
 import { useWalletStore, selectIsWalletConnected } from "../store/useWalletStore";
+import { useSettingsStore, selectSoundEnabled } from "../store/useSettingsStore";
+import {
+  bindSoundPreference,
+  clearSoundPreferenceBinding,
+  playRoundResolutionCue,
+} from "../utils/audioController";
 import { TipCard } from "../components/education/TipCard";
 import type { Tip } from "../types/education";
 import EmptyState from '../components/EmptyState';
@@ -33,9 +40,10 @@ import NetworkMismatchCard from '../components/NetworkMismatchCard';
 import ProfileSummaryCard from '../components/ProfileSummaryCard';
 import SorobanInspectorPanel from '../components/SorobanInspectorPanel';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import ModeToggle, { type DashboardMode } from "../components/ModeToggle";
 
 import { inspectSorobanState, type SorobanInspectorSnapshot } from "../lib/xelma-contract";
-import { mockUserStats, mockRounds } from "../data/mockData";
+import { mockRounds } from "../data/mockData";
 
 import type { RecentActivityItem } from "../types";
 import { toast } from "sonner";
@@ -71,6 +79,21 @@ function mapPredictionToOpenPosition(pred: UserPrediction): OpenPosition {
         : undefined,
     createdAt: pred.createdAt,
   };
+}
+
+/**
+ * Issue #413 — derive the UP/DOWN pool split (0-100) for a round so the
+ * BetModal can surface the soft pool-imbalance warning. Returns null for
+ * precision rounds or empty pools.
+ */
+function upDownPoolPercentages(
+  round: { mode?: string; poolUp?: number; poolDown?: number } | null,
+): { poolUpPct: number; poolDownPct: number } | null {
+  if (!round || round.mode !== 'updown') return null;
+  const total = (round.poolUp ?? 0) + (round.poolDown ?? 0);
+  if (total <= 0) return null;
+  const upPct = Math.round(((round.poolUp ?? 0) / total) * 100);
+  return { poolUpPct: upPct, poolDownPct: 100 - upPct };
 }
 
 function mapPredictionToActivityItem(pred: UserPrediction): RecentActivityItem {
@@ -181,6 +204,7 @@ const DailyTip = () => {
 
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const isRoundActive = useRoundStore((state) => state.isRoundActive);
   const isLoading = useRoundStore((state) => state.isLoading);
   const sseConnection = useRoundStore((state) => state.sseConnection);
@@ -198,26 +222,41 @@ const Dashboard = () => {
   const [isBetModalOpen, setIsBetModalOpen] = useState(false);
   const [pendingPrediction, setPendingPrediction] = useState<PredictionData | null>(null);
   const [optimisticPrediction, setOptimisticPrediction] = useState<UserPrediction | null>(null);
+  // Bumped on a successful submit so PredictionHistory re-fetches and picks
+  // up the now-confirmed prediction once the optimistic row is cleared.
+  const [historyRefreshSignal, setHistoryRefreshSignal] = useState(0);
   // Community chat is opt-in so the default terminal stays uncluttered.
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isEventLogOpen, setIsEventLogOpen] = useState(false);
   const timeoutRef = useRef<number | null>(null);
+
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
+    const saved = localStorage.getItem('xelma_mode');
+    return saved === 'on-chain' ? 'on-chain' : 'practice';
+  });
+
+  const handleModeChange = (newMode: DashboardMode) => {
+    setDashboardMode(newMode);
+    localStorage.setItem('xelma_mode', newMode);
+  };
 
   // Latest live price from the chart, held in a ref to avoid re-renders on every tick.
   const currentPriceRef = useRef<number | null>(null);
   // Price that was live when the user's prediction succeeded; marks the chart.
   const [entryPrice, setEntryPrice] = useState<number | null>(null);
 
+  // Clear the entry marker whenever the active round changes. State is adjusted
+  // during render (not in an effect) so we never call setState synchronously
+  // from an effect (react-hooks/set-state-in-effect).
+  const [prevActiveRoundId, setPrevActiveRoundId] = useState(activeRoundId);
+  if (prevActiveRoundId !== activeRoundId) {
+    setPrevActiveRoundId(activeRoundId);
+    setEntryPrice(null);
+  }
+
   const handlePriceUpdate = useCallback((price: number) => {
     currentPriceRef.current = price;
   }, []);
-
-  // Clear the entry marker whenever the active round changes.
-  useEffect(() => {
-    // Clear the chart marker when the active round changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEntryPrice(null);
-  }, [activeRoundId]);
 
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
@@ -230,7 +269,7 @@ const Dashboard = () => {
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [inspector, setInspector] = useState<SorobanInspectorSnapshot | null>(null);
   const [isInspectorLoading, setIsInspectorLoading] = useState(false);
-  const [roundSoundEnabled, setRoundSoundEnabled] = useState(() => localStorage.getItem("xelma_round_sound") === "1");
+  const soundEnabled = useSettingsStore(selectSoundEnabled);
 
   // Asset tab state from URL query param
   const [searchParams] = useSearchParams();
@@ -261,6 +300,17 @@ const Dashboard = () => {
   // Filter mock rounds by the selected asset
   const filteredRounds = useMemo(
     () => mockRounds.filter((r) => r.asset === normalizedAsset),
+    [normalizedAsset],
+  );
+
+  // Issue #413 — pool split for the selected asset's UP/DOWN round, attached
+  // to predictions opened from the prediction card / mobile bar so the
+  // BetModal can surface the soft pool-imbalance warning.
+  const assetPoolSplit = useMemo(
+    () =>
+      upDownPoolPercentages(
+        mockRounds.find((r) => r.asset === normalizedAsset && r.mode === 'updown') ?? null,
+      ),
     [normalizedAsset],
   );
 
@@ -327,10 +377,15 @@ const Dashboard = () => {
   }, [activeRoundId, isWalletConnected, publicKey]);
 
   useEffect(() => {
-    // Load user-specific dashboard data when wallet identity changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchStats();
-    void fetchActivities();
+    // Deferred through a promise chain so the effect performs no synchronous
+    // setState calls (react-hooks/set-state-in-effect). Both fetches still
+    // start promptly and run concurrently.
+    Promise.resolve()
+      .then(() => {
+        void fetchStats();
+        void fetchActivities();
+      })
+      .catch(() => undefined);
   }, [fetchStats, fetchActivities]);
 
   const refreshInspector = useCallback(async () => {
@@ -355,16 +410,22 @@ const Dashboard = () => {
   }, [isWalletConnected, publicKey]);
 
   useEffect(() => {
-    // Refresh the inspector when wallet identity changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshInspector();
+    // Deferred through a promise chain so the effect performs no synchronous
+    // setState calls (react-hooks/set-state-in-effect).
+    Promise.resolve()
+      .then(() => {
+        void refreshInspector();
+      })
+      .catch(() => undefined);
   }, [refreshInspector]);
 
-  const handleRoundSoundToggle = (enabled: boolean) => {
-    setRoundSoundEnabled(enabled);
-    localStorage.setItem('xelma_round_sound', enabled ? '1' : '0');
-  };
-
+  // Bind the audio controller to the settings store so round-resolution cues
+  // respect the same preference as the Settings "Test sound" tone, even
+  // though this page never mounts Settings.tsx.
+  useEffect(() => {
+    bindSoundPreference(() => useSettingsStore.getState().soundEnabled);
+    return () => clearSoundPreferenceBinding();
+  }, []);
 
   useEffect(() => {
     const { fetchActiveRound, subscribeToRoundEvents } = useRoundStore.getState();
@@ -386,7 +447,9 @@ const Dashboard = () => {
   }, []);
 
   const handlePrediction = (data: PredictionData) => {
-    setPendingPrediction(data);
+    // Attach the round's UP/DOWN pool split so the BetModal can surface the
+    // soft pool-imbalance warning for UP/DOWN rounds.
+    setPendingPrediction({ ...data, ...(assetPoolSplit ?? {}) });
     setIsBetModalOpen(true);
   };
 
@@ -439,8 +502,15 @@ const Dashboard = () => {
 
   const endRoundResult = getEndRoundResult(resolvedRound);
 
+  // Play the round-resolution cue exactly once per resolved round.
+  useEffect(() => {
+    if (!resolvedRound) return;
+    if (!soundEnabled) return;
+    playRoundResolutionCue(endRoundResult.isWin);
+  }, [resolvedRound, endRoundResult.isWin, soundEnabled]);
+
   return (
-    <div className="xelma-grid-bg min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+    <main id="main-content" className="xelma-grid-bg min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       {/* Opt-in community chat (ported from the legacy /play view). Self-positions
           as a fixed slide-over, so mounting it does not shift the terminal layout. */}
       {isChatOpen && <ChatSidebar />}
@@ -449,32 +519,13 @@ const Dashboard = () => {
         {isLoading && <DashboardSkeleton />}
 
         {!isLoading && (
-          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-            {isRoundActive && (
-              <button
-                type="button"
-                onClick={() => setIsOpenPositionsOpen(true)}
-                aria-haspopup="dialog"
-                aria-expanded={isOpenPositionsOpen}
-                aria-label={`Open positions, ${openPositions.length} open positions`}
-                className="btn-ghost inline-flex min-h-[40px] items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold"
-                data-testid="open-positions-trigger"
-              >
-                Open positions
-                <span className="rounded-full bg-cyan-300/15 px-2 py-0.5 text-xs text-cyan-200" aria-hidden="true">
-                  {openPositions.length}
-                </span>
-              </button>
-            )}
-            <label className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300">
-              <input
-                type="checkbox"
-                checked={roundSoundEnabled}
-                onChange={(event) => handleRoundSoundToggle(event.target.checked)}
-                className="accent-cyan-400"
-              />
-              Round sound
-            </label>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <ModeToggle
+              mode={dashboardMode}
+              onChangeMode={handleModeChange}
+              isWalletConnected={isWalletConnected}
+              onPromptConnect={() => void useWalletStore.getState().connect()}
+            />
             <button
               type="button"
               onClick={() => setIsChatOpen((open) => !open)}
@@ -551,7 +602,7 @@ const Dashboard = () => {
                     aria-label="Copy share link"
                   >
                     <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    Share
+                    {t('dashboard.share.button')}
                   </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -567,11 +618,14 @@ const Dashboard = () => {
                     }}
                     round={round}
                     isHighlighted={deepLinkedRoundId === round.id}
-                    onSubmitPrediction={() => {
+                    onSubmitPrediction={(round) => {
                       setPendingPrediction({
                         direction: "UP",
                         stake: "0",
                         isLegend: false,
+                        // Issue #413 — carry the round's UP/DOWN pool split so
+                        // the BetModal can show the imbalance warning.
+                        ...(upDownPoolPercentages(round) ?? {}),
                       });
                       setIsBetModalOpen(true);
                     }}
@@ -602,14 +656,14 @@ const Dashboard = () => {
         {!isLoading && !isWalletConnected && (
           <div className="mb-6 flex flex-col gap-3 rounded-xl border border-[#2C4BFD]/30 bg-[#2C4BFD]/10 p-4 text-sm text-[#BEC7FE] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
             <p className="leading-relaxed" data-testid="dashboard-wallet-prompt">
-              Connect your wallet to submit predictions.
+              {t('dashboard.walletPrompt.message')}
             </p>
             <Link
               to="/connect"
               data-testid="dashboard-connect-now"
               className="btn-primary no-underline inline-flex min-h-[44px] w-full items-center justify-center rounded-lg px-5 py-2 text-sm font-bold sm:w-auto"
             >
-              Connect now
+              {t('dashboard.walletPrompt.connectNow')}
             </Link>
           </div>
         )}
@@ -620,8 +674,8 @@ const Dashboard = () => {
 
         {!isLoading && !isRoundActive && (
           <EmptyState
-            title="No Active Rounds"
-            description="Learn how the game works or refresh to check for new rounds."
+            title={t('dashboard.emptyState.noActiveRounds.title')}
+            description={t('dashboard.emptyState.noActiveRounds.description')}
             icon={<NoRoundsIllustration className="mb-4" />}
             action={
               <button
@@ -659,7 +713,7 @@ const Dashboard = () => {
 
               {isWalletConnected && (
                 <StatsCard
-                  stats={stats || mockUserStats}
+                  stats={stats}
                   isLoading={isStatsLoading}
                   error={statsError || undefined}
                   onRetry={fetchStats}
@@ -690,7 +744,11 @@ const Dashboard = () => {
                   onRetry={fetchActivities}
                 />
               )}
-              <PredictionHistory userId={publicKey} optimisticPrediction={optimisticPrediction} />
+              <PredictionHistory
+                userId={publicKey}
+                optimisticPrediction={optimisticPrediction}
+                refreshSignal={historyRefreshSignal}
+              />
             </div>
           </div>
         )}
@@ -717,10 +775,11 @@ const Dashboard = () => {
                 direction: 'UP',
                 stake: '',
                 isLegend: false,
+                ...(assetPoolSplit ?? {}),
               });
               setIsBetModalOpen(true);
             }}
-            className="w-full py-3.5 bg-[#2C4BFD] hover:bg-[#2C4BFD]/90 rounded-xl font-bold text-sm transition active:scale-[0.98] min-h-[44px]"
+            className="w-full py-3.5 bg-[#2C4BFD] hover:bg-[#2C4BFD]/90 rounded-xl font-bold text-sm transition active:scale-[0.98] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0F1A]"
           >
             Make Prediction
           </button>
@@ -747,6 +806,7 @@ setOptimisticPrediction(null);
           }
           void fetchStats();
           void fetchActivities();
+          setHistoryRefreshSignal((n) => n + 1);
         }}
       />
       <EndRoundModal
@@ -755,7 +815,7 @@ setOptimisticPrediction(null);
         result={endRoundResult}
       />
       <EventLogDrawer isOpen={isEventLogOpen} onClose={() => setIsEventLogOpen(false)} />
-    </div>
+    </main>
   );
 };
 
