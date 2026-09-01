@@ -48,7 +48,7 @@ test.describe('Wallet Connect – Freighter Mocked', () => {
     await page.goto('/connect');
 
     // The Connect page renders the WalletConnect component inside the glass-card
-    const connectButton = page.locator('.glass-card').getByRole('button', { name: /connect wallet/i });
+    const connectButton = page.locator('.glass-card').getByRole('button', { name: /connect wallet|checking wallet/i });
     await expect(connectButton).toBeVisible();
   });
 
@@ -82,8 +82,9 @@ test.describe('Wallet Connect – Freighter Mocked', () => {
     await expect(walletPrompt).toBeVisible();
     await expect(walletPrompt).toContainText('Connect your wallet');
 
-    // Navigate to /connect page
-    await page.goto('/connect');
+    // Navigate to /connect page by clicking connect now CTA
+    await page.click('[data-testid="dashboard-connect-now"]');
+    await page.waitForURL('**/connect');
 
     // Close any modal overlay that might be present (e.g., onboarding modal)
     const modalOverlay = page.locator('.fixed.inset-0.z-\\[200\\]');
@@ -93,7 +94,7 @@ test.describe('Wallet Connect – Freighter Mocked', () => {
     }
 
     // Click "Connect Wallet" button in the glass-card to initiate Freighter flow
-    const connectButton = page.locator('.glass-card').getByRole('button', { name: /connect wallet/i });
+    const connectButton = page.locator('.glass-card').getByRole('button', { name: /connect wallet|checking wallet/i });
     await expect(connectButton).toBeVisible();
   });
 });
