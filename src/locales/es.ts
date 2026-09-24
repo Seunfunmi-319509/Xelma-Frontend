@@ -39,6 +39,18 @@ const es = {
   footer: {
     description: 'Inteligencia colectiva de mercado en Stellar',
   },
+  dashboard: {
+    walletPrompt: 'Conecta tu cartera para enviar predicciones.',
+    connectNow: 'Conectar ahora',
+    noActiveRounds: 'Sin rondas activas',
+    emptyStateDescription: 'Aprende cómo funciona el juego o actualiza para buscar nuevas rondas.',
+    refresh: 'Actualizar',
+    communityChat: 'Chat de la comunidad',
+    hideCommunityChat: 'Ocultar chat de la comunidad',
+    roundUpdates: 'Actualizaciones de la ronda: {{error}}',
+    viewAllGuides: 'Ver todas las guías',
+    stayTuned: 'Mantente atento a la próxima ronda.',
+  },
 };
 
 export default es;

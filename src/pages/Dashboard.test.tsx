@@ -32,6 +32,9 @@ vi.mock('react-router-dom', () => ({
   ),
 }));
 
+import '../i18n';
+import i18n from '../i18n';
+
 import Dashboard from './Dashboard';
 
 function selectFromStore<TStore extends object>(selector: unknown, store: TStore) {
@@ -235,8 +238,8 @@ describe('Dashboard', () => {
     });
   });
 
-  afterEach(() => {
-    // Don't use real timers cleanup since we're not using fake timers
+  afterEach(async () => {
+    await i18n.changeLanguage('en');
   });
 
   describe('rendering', () => {
@@ -416,6 +419,73 @@ describe('Dashboard', () => {
       fireEvent.click(closeButton);
 
       expect(modal).toHaveAttribute('data-open', 'false');
+    });
+  });
+
+  describe('internationalization', () => {
+    it('renders Spanish wallet prompt and CTA when locale is switched to es', async () => {
+      await i18n.changeLanguage('es');
+
+      vi.mocked(useWalletStore).mockImplementation(((selector: unknown) => {
+        const store = { ...mockWalletStore, status: 'idle', publicKey: null };
+        return selectFromStore(selector, store);
+      }) as never);
+
+      render(<Dashboard />);
+
+      expect(screen.getByTestId('dashboard-wallet-prompt')).toHaveTextContent(
+        'Conecta tu cartera para enviar predicciones.'
+      );
+      expect(screen.getByTestId('dashboard-connect-now')).toHaveTextContent('Conectar ahora');
+    });
+
+    it('renders Spanish empty state and refresh CTA when locale is switched to es', async () => {
+      await i18n.changeLanguage('es');
+
+      vi.mocked(useRoundStore).mockImplementation((selector: any) => {
+        const store = { ...mockRoundStore, isRoundActive: false };
+        return typeof selector === 'function' ? selector(store) : store;
+      });
+
+      render(<Dashboard />);
+
+      expect(screen.getByText('Sin rondas activas')).toBeInTheDocument();
+      expect(
+        screen.getByText('Aprende cómo funciona el juego o actualiza para buscar nuevas rondas.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Actualizar' })).toBeInTheDocument();
+    });
+
+    it('renders Spanish chat toggle and round update banner when locale is switched to es', async () => {
+      await i18n.changeLanguage('es');
+
+      const store = {
+        ...mockRoundStore,
+        sseConnection: { status: 'connecting' as const, error: 'socket unavailable' },
+      };
+
+      vi.mocked(useRoundStore).mockImplementation((selector: any) => {
+        return typeof selector === 'function' ? selector(store) : store;
+      });
+
+      render(<Dashboard />);
+
+      expect(screen.getByRole('button', { name: 'Chat de la comunidad' })).toBeInTheDocument();
+      expect(
+        screen.getByText('Actualizaciones de la ronda: socket unavailable')
+      ).toBeInTheDocument();
+    });
+
+    it('keeping English defaults when locale is en', () => {
+      vi.mocked(useWalletStore).mockImplementation(((selector: unknown) => {
+        const store = { ...mockWalletStore, status: 'idle', publicKey: null };
+        return selectFromStore(selector, store);
+      }) as never);
+
+      render(<Dashboard />);
+
+      expect(screen.getByText('Connect your wallet to submit predictions.')).toBeInTheDocument();
+      expect(screen.getByText('Connect now')).toBeInTheDocument();
     });
   });
 });

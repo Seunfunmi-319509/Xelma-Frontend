@@ -39,6 +39,18 @@ const en = {
   footer: {
     description: 'Collective market intelligence on Stellar',
   },
+  dashboard: {
+    walletPrompt: 'Connect your wallet to submit predictions.',
+    connectNow: 'Connect now',
+    noActiveRounds: 'No Active Rounds',
+    emptyStateDescription: 'Learn how the game works or refresh to check for new rounds.',
+    refresh: 'Refresh',
+    communityChat: 'Community chat',
+    hideCommunityChat: 'Hide community chat',
+    roundUpdates: 'Round updates: {{error}}',
+    viewAllGuides: 'View all guides',
+    stayTuned: 'Stay tuned for the next round.',
+  },
   testFallback: 'Fallback test',
 };
 
