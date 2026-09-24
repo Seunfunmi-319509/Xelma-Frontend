@@ -52,7 +52,12 @@ const LearnPage = () => {
     }, []);
 
     useEffect(() => {
+        // Load education content when the page mounts.
         fetchData();
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [fetchData]);
 
     if (loading) {

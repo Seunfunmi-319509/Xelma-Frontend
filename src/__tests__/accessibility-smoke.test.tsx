@@ -98,6 +98,7 @@ vi.mock('../store/useWalletStore', () => ({
     (state: { status: string; publicKey: string | null }) =>
       state.status === 'connected' && Boolean(state.publicKey),
   ),
+  selectNeedsFunding: vi.fn(() => false),
 }));
 
 vi.mock('../hooks/useConnectionStatus', () => ({

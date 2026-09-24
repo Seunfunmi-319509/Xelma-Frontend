@@ -30,7 +30,7 @@ vi.mock('../../lib/socket', () => {
 // Mock API client
 vi.mock('../../lib/api-client', () => ({
   priceApi: {
-    getHistory: vi.fn().mockResolvedValue([]),
+    getPriceSeries: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -55,6 +55,17 @@ vi.mock('../../store/useNotificationsStore', () => ({
 // Mock connection status hook
 vi.mock('../../hooks/useConnectionStatus', () => ({
   useConnectionStatus: vi.fn(),
+}));
+
+// Mock wallet store
+const mockWalletState = { publicKey: 'GTEST123' };
+vi.mock('../../store/useWalletStore', () => ({
+  useWalletStore: Object.assign(
+    vi.fn((selector?: (state: typeof mockWalletState) => unknown) => {
+      return selector ? selector(mockWalletState) : mockWalletState;
+    }),
+    { getState: () => mockWalletState },
+  ),
 }));
 
 import PriceChart from '../PriceChart';
@@ -110,7 +121,7 @@ describe('Socket Integration Tests', () => {
       
       expect(socketService.connect).toHaveBeenCalledOnce();
       expect(socketService.onNotification).toHaveBeenCalledOnce();
-      expect(socketService.joinNotifications).toHaveBeenCalledWith('user');
+      expect(socketService.joinNotifications).toHaveBeenCalledWith('GTEST123');
     });
 
     it('should connect socket when ChatSidebar mounts', () => {
